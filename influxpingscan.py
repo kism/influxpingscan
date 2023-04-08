@@ -97,7 +97,7 @@ def checkhosts(conn):
     for host in hostlist:
         pingresult = ping(host, timeout=0.5)
         print_debug('DEBUG ' + host + ' ' + str(pingresult), "\n")
-        if pingresult is False:
+        if str(pingresult) == "None":
             result = False
         else:
             result = True
