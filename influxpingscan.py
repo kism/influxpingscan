@@ -172,7 +172,9 @@ def create_table(conn, create_table_sql):
 
 def main():
     """Init"""
+
     database = "hosts.db"
+    databasepath = PWD + "/" + database
 
     sql_create_elo_table = """ CREATE TABLE IF NOT EXISTS hosts (
                                         hostname  text      PRIMARY KEY,
@@ -180,7 +182,7 @@ def main():
                                     ); """
 
     # create a database connection
-    conn = create_connection(database)
+    conn = create_connection(databasepath)
     if conn is None:
         print("Error! cannot create the database connection.")
 
