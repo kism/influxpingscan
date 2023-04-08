@@ -25,8 +25,13 @@ MEASUREMENT = CONFIG.get("INFLUXDB2", "measurement")
 INFLUXDBORG = CONFIG.get("INFLUXDB2", "organization")
 IPRANGE = CONFIG.get("NETWORK", "iprange")
 DEBUG = CONFIG.get("PROGRAM", "debug")
-if DEBUG == "True":
+print(type(DEBUG), DEBUG)
+if DEBUG.upper() == "TRUE":
     DEBUG = True
+else:
+    DEBUG = False
+
+print(type(DEBUG), DEBUG)
 
 def print_debug(text, endchar):  # Debug messages in yellow if the debug global is true
     """My cring and basic debug colouring"""
