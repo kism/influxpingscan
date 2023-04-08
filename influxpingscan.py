@@ -94,7 +94,7 @@ def checkhosts(conn):
 
     for host in hostlist:
         pingresult = ping(host, timeout=0.5)
-        print('\n DEBUG ' + host + ' ' + str(pingresult) + '\n')
+        print_debug('DEBUG ' + host + ' ' + str(pingresult), "\n")
         if pingresult is False:
             result = False
         else:
@@ -123,7 +123,7 @@ def checkhosts(conn):
         + "&precision=s"
     )
 
-    print(url + " | " + data)
+    print_debug('DEBUG ' + url + " \n" + data, "\n")
 
     try:
         req = requests.post(
@@ -137,7 +137,6 @@ def checkhosts(conn):
         pass
 
     print(req)
-    print("\n")
 
 
 
