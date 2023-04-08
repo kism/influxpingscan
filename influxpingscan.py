@@ -38,6 +38,7 @@ def print_debug(text, endchar):  # Debug messages in yellow if the debug global 
 
 def scanhosts(conn):
     """Ping scan the network"""
+    # FIXME
     for i in range(1, 255):
         ip_address = IPRANGE + str(i)
 
@@ -93,6 +94,8 @@ def checkhosts(conn):
     timestamp = timeepoch
 
     data = ''
+
+    # FIXME maybe
 
     for host in hostlist:
         pingresult = ping(host, timeout=0.5)
