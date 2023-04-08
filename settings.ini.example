@@ -1,0 +1,25 @@
+[INFLUXDB2]
+
+# InfluxDB server URL
+url = https://localhost:8086
+
+# Token for authentication
+token =
+
+# Organization - the name of the organization you wish to write to
+organization =
+
+# Destination bucket to write into
+bucket =
+
+#  Measurement name
+measurement =
+
+
+[NETWORK]
+
+iprange = 10.0.0.
+
+[PROGRAM]
+
+debug = True
