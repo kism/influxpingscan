@@ -30,6 +30,9 @@ if DEBUG.upper() == "TRUE":
 else:
     DEBUG = False
 
+MAXRANGE = 4
+
+
 def print_debug(text, endchar):  # Debug messages in yellow if the debug global is true
     """My cring and basic debug colouring"""
     if DEBUG:
@@ -37,9 +40,8 @@ def print_debug(text, endchar):  # Debug messages in yellow if the debug global 
 
 
 def scanhosts(conn):
-    """Ping scan the network"""
-    # FIXME
-    for i in range(1, 255):
+    """Scan the network for hosts"""
+    for i in range(1, MAXRANGE):
         ip_address = IPRANGE + str(i)
 
         entry = None
@@ -54,7 +56,7 @@ def scanhosts(conn):
         if entry is not None:
             print("Found: " + entry[0] + " at IP address: " + ip_address)
             try:
-                add_entry(conn, (entry[0], timeepoch))
+                add_entry(conn, (entry[0], ip_address, timeepoch))
             except sqlite3.IntegrityError:
                 pass  # If the unique check fails, just move on
         else:
@@ -62,9 +64,9 @@ def scanhosts(conn):
 
 
 def add_entry(conn, entry):
-    """Add entry to the elo table"""
-    sql = """ INSERT INTO hosts(hostname,lastalive)
-            VALUES(?,?) """
+    """Add entry to the host table"""
+    sql = """ INSERT INTO hosts(hostname,ip_address,lastalive)
+            VALUES(?,?,?) """
     cur = conn.cursor()
     cur.execute(sql, entry)
     print("adding to database: " + str(entry))
@@ -84,27 +86,42 @@ def gethosts(conn):
     return hostnamelist
 
 
+def check_host_in_db(conn, ip_address):
+    cur = conn.cursor()
+    cur.execute("SELECT hostname FROM hosts WHERE")
+    hostlist = cur.fetchall()
+
 def checkhosts(conn):
     """ping all the hosts to see if they are up"""
-    hostlist = gethosts(conn)
     timeepoch = int(time.time())
     # Since this scan takes a while, we put all the stats at the same time
     # to make the visual in grafana look better
     # timestamp = timeepoch * 1000000000
     timestamp = timeepoch
 
-    data = ''
+    data = ""
 
     # FIXME maybe
 
-    for host in hostlist:
-        pingresult = ping(host, timeout=0.5)
-        print_debug('DEBUG ' + host + ' ' + str(pingresult), "\n")
+    for i in range(1, MAXRANGE):
+        ip_address = IPRANGE + str(i)
+        pingresult = ping(ip_address, timeout=0.5)
+        print_debug("DEBUG " + ip_address + " " + str(pingresult), "\n")
         print(type(pingresult))
-        if pingresult is None:
-            result = False
+
+        if check_host_in_db(conn, ip_address):
+            pass
+            # update host in db?
         else:
-            result = True
+            if pingresult is None:
+                result = False
+            else:
+                result = True
+                # add host to database
+
+
+
+
 
         data = data + (
             "ping"
@@ -129,13 +146,13 @@ def checkhosts(conn):
         + "&precision=s"
     )
 
-    print_debug('DEBUG ' + url + " \n" + data, "\n")
+    print_debug("DEBUG " + url + " \n" + data, "\n")
 
     try:
         req = requests.post(
             url,
             data=data,
-            #headers={"Authorization": ("Token:" + INFLUXDBTOKEN)},
+            # headers={"Authorization": ("Token:" + INFLUXDBTOKEN)},
             headers={"Authorization": "Token " + INFLUXDBTOKEN},
             timeout=1,
         )
@@ -143,16 +160,6 @@ def checkhosts(conn):
         pass
 
     print(req)
-
-
-
-
-
-
-
-
-
-
 
 
 def create_connection(db_file):
@@ -181,7 +188,8 @@ def main():
     databasepath = PWD + "/" + database
 
     sql_create_elo_table = """ CREATE TABLE IF NOT EXISTS hosts (
-                                        hostname  text      PRIMARY KEY,
+                                        hostname  text      ,
+                                        ip_address text     PRIMARY KEY,
                                         lastalive int       NOT NULL
                                     ); """
 
