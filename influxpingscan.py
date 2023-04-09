@@ -30,6 +30,9 @@ if DEBUG.upper() == "TRUE":
 else:
     DEBUG = False
 
+MAXRANGE = 4
+
+
 def print_debug(text, endchar):  # Debug messages in yellow if the debug global is true
     """My cring and basic debug colouring"""
     if DEBUG:
@@ -37,10 +40,8 @@ def print_debug(text, endchar):  # Debug messages in yellow if the debug global 
 
 
 def scanhosts(conn):
-    """Socket dns? scan the network"""
-    removeoldhosts(conn)
-    # FIXME, haha
-    for i in range(1, 255):
+    """Scan the network for hosts"""
+    for i in range(1, MAXRANGE):
         ip_address = IPRANGE + str(i)
 
         entry = None
@@ -55,7 +56,7 @@ def scanhosts(conn):
         if entry is not None:
             print("Found: " + entry[0] + " at IP address: " + ip_address)
             try:
-                add_entry(conn, (entry[0], timeepoch))
+                add_entry(conn, (entry[0], ip_address, timeepoch))
             except sqlite3.IntegrityError:
                 pass  # If the unique check fails, just move on
         else:
@@ -96,27 +97,40 @@ def gethosts(conn):
     return hostnamelist
 
 
+def check_host_in_db(conn, ip_address):
+    cur = conn.cursor()
+    cur.execute("SELECT hostname FROM hosts WHERE")
+    hostlist = cur.fetchall()
+
 def checkhosts(conn):
     """ping all the hosts to see if they are up"""
-    hostlist = gethosts(conn)
     timeepoch = int(time.time())
     # Since this scan takes a while, we put all the stats at the same time
     # to make the visual in grafana look better
     # timestamp = timeepoch * 1000000000
     timestamp = timeepoch
 
-    data = ''
+    data = ""
 
     # FIXME maybe
 
-    for host in hostlist:
-        pingresult = ping(host, timeout=0.5)
-        print_debug('DEBUG ' + host + ' ' + str(pingresult), "\n")
+    for i in range(1, MAXRANGE):
+        ip_address = IPRANGE + str(i)
+        pingresult = ping(ip_address, timeout=0.5)
+        print_debug("DEBUG " + ip_address + " " + str(pingresult), "\n")
         print(type(pingresult))
         if pingresult is None or pingresult is False:
             result = False
         else:
-            result = True
+            if pingresult is None:
+                result = False
+            else:
+                result = True
+                # add host to database
+
+
+
+
 
         data = data + (
             "ping"
@@ -141,13 +155,13 @@ def checkhosts(conn):
         + "&precision=s"
     )
 
-    print_debug('DEBUG ' + url + " \n" + data, "\n")
+    print_debug("DEBUG " + url + " \n" + data, "\n")
 
     try:
         req = requests.post(
             url,
             data=data,
-            #headers={"Authorization": ("Token:" + INFLUXDBTOKEN)},
+            # headers={"Authorization": ("Token:" + INFLUXDBTOKEN)},
             headers={"Authorization": "Token " + INFLUXDBTOKEN},
             timeout=1,
         )
@@ -156,16 +170,6 @@ def checkhosts(conn):
     except requests.exceptions.ConnectionError:
         print("Could not POST")
         sys.exit(1)
-
-
-
-
-
-
-
-
-
-
 
 
 
