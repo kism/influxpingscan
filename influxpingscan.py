@@ -131,6 +131,7 @@ def checkhosts(conn):
 
     print_debug('DEBUG ' + url + " \n" + data, "\n")
 
+    req = ""
     try:
         req = requests.post(
             url,
