@@ -69,9 +69,21 @@ def add_entry(conn, entry):
     cur.execute(sql, entry)
     print("adding to database: " + str(entry))
 
+def removeoldhosts(conn):
+    week_ago_time = int(time.time()) - (7 * 24 * 60 * 60) # delete hosts older than a week
+    cur = conn.cursor()
+
+    cur.execute("SELECT hostname FROM hosts WHERE lastalive < ?", (week_ago_time,))
+    hostlist = cur.fetchall()
+    print("Deleting: " + str(hostlist))
+
+    cur.execute("DELETE FROM hosts WHERE lastalive < ?", (week_ago_time,))
+    conn.commit()
+
 
 def gethosts(conn):
     """Get existing list of hosts"""
+    removeoldhosts(conn)
     cur = conn.cursor()
     cur.execute("SELECT hostname FROM hosts")
     hostlist = cur.fetchall()
