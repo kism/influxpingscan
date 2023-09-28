@@ -131,7 +131,6 @@ def checkhosts(conn):
 
     print_debug('DEBUG ' + url + " \n" + data, "\n")
 
-    req = ""
     try:
         req = requests.post(
             url,
@@ -140,10 +139,12 @@ def checkhosts(conn):
             headers={"Authorization": "Token " + INFLUXDBTOKEN},
             timeout=1,
         )
-    except requests.exceptions.ConnectionError:
-        pass
+        print(req)
 
-    print(req)
+    except requests.exceptions.ConnectionError:
+        print("Could not POST")
+        sys.exit(1)
+
 
 
 
