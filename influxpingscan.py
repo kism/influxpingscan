@@ -37,8 +37,9 @@ def print_debug(text, endchar):  # Debug messages in yellow if the debug global 
 
 
 def scanhosts(conn):
-    """Ping scan the network"""
-    # FIXME
+    """Socket dns? scan the network"""
+    removeoldhosts(conn)
+    # FIXME, haha
     for i in range(1, 255):
         ip_address = IPRANGE + str(i)
 
@@ -62,7 +63,7 @@ def scanhosts(conn):
 
 
 def add_entry(conn, entry):
-    """Add entry to the elo table"""
+    """Add entry to the host table"""
     sql = """ INSERT INTO hosts(hostname,lastalive)
             VALUES(?,?) """
     cur = conn.cursor()
@@ -83,7 +84,6 @@ def removeoldhosts(conn):
 
 def gethosts(conn):
     """Get existing list of hosts"""
-    removeoldhosts(conn)
     cur = conn.cursor()
     cur.execute("SELECT hostname FROM hosts")
     hostlist = cur.fetchall()
@@ -194,7 +194,7 @@ def main():
     database = "hosts.db"
     databasepath = PWD + "/" + database
 
-    sql_create_elo_table = """ CREATE TABLE IF NOT EXISTS hosts (
+    sql_create_host_table = """ CREATE TABLE IF NOT EXISTS hosts (
                                         hostname  text      PRIMARY KEY,
                                         lastalive int       NOT NULL
                                     ); """
@@ -204,7 +204,7 @@ def main():
     if conn is None:
         print("Error! cannot create the database connection.")
 
-    create_table(conn, sql_create_elo_table)  # keyword, create table
+    create_table(conn, sql_create_host_table)  # keyword, create table
 
     if len(sys.argv) == 1:
         print("Give parameter pls")
