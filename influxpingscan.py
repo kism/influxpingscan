@@ -71,20 +71,9 @@ def add_entry(conn, entry):
     cur.execute(sql, entry)
     print("adding to database: " + str(entry))
 
-def removeoldhosts(conn):
-    week_ago_time = int(time.time()) - (7 * 24 * 60 * 60) # delete hosts older than a week
-    cur = conn.cursor()
-
-    cur.execute("SELECT hostname FROM hosts WHERE lastalive < ?", (week_ago_time,))
-    hostlist = cur.fetchall()
-    print("Deleting: " + str(hostlist))
-
-    cur.execute("DELETE FROM hosts WHERE lastalive < ?", (week_ago_time,))
-    conn.commit()
-
 
 def remove_old_hosts(conn):
-    """Remove hosts that havent been contactable for a week"""
+    """Remove hosts that have been uncontactable for a week"""
     week_ago_time = int(time.time()) - (
         7 * 24 * 60 * 60
     )  # delete hosts older than a week
@@ -129,20 +118,10 @@ def check_hosts(conn):
         pingresult = ping(host, timeout=0.5)
         print_debug("DEBUG " + host + " " + str(pingresult), "\n")
         print(type(pingresult))
-
-        if check_host_in_db(conn, ip_address):
-            pass
-            # update host in db?
+        if pingresult is None or pingresult is False:
+            result = False
         else:
-            if pingresult is None:
-                result = False
-            else:
-                result = True
-                # add host to database
-
-
-
-
+            result = True
 
         data = data + (
             "ping"
@@ -180,9 +159,8 @@ def check_hosts(conn):
         print(req)
 
     except requests.exceptions.ConnectionError:
-        pass
-
-    print(req)
+        print("Could not POST")
+        sys.exit(1)
 
 
 def create_connection(db_file):
