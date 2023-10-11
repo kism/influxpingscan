@@ -30,8 +30,6 @@ if DEBUG.upper() == "TRUE":
 else:
     DEBUG = False
 
-MAXRANGE = 4
-
 
 def print_debug(text, endchar):  # Debug messages in yellow if the debug global is true
     """My cring and basic debug colouring"""
@@ -39,9 +37,11 @@ def print_debug(text, endchar):  # Debug messages in yellow if the debug global 
         print("\033[93m" + text + "\033[0m", end=endchar)
 
 
-def scanhosts(conn):
-    """Scan the network for hosts"""
-    for i in range(1, MAXRANGE):
+def scan_hosts(conn):
+    """Socket dns? scan the network"""
+    remove_old_hosts(conn)
+    # FIXME, haha
+    for i in range(1, 255):
         ip_address = IPRANGE + str(i)
 
         entry = None
@@ -56,7 +56,7 @@ def scanhosts(conn):
         if entry is not None:
             print("Found: " + entry[0] + " at IP address: " + ip_address)
             try:
-                add_entry(conn, (entry[0], ip_address, timeepoch))
+                add_entry(conn, (entry[0], timeepoch))
             except sqlite3.IntegrityError:
                 pass  # If the unique check fails, just move on
         else:
@@ -83,7 +83,22 @@ def removeoldhosts(conn):
     conn.commit()
 
 
-def gethosts(conn):
+def remove_old_hosts(conn):
+    """Remove hosts that havent been contactable for a week"""
+    week_ago_time = int(time.time()) - (
+        7 * 24 * 60 * 60
+    )  # delete hosts older than a week
+    cur = conn.cursor()
+
+    cur.execute("SELECT hostname FROM hosts WHERE lastalive < ?", (week_ago_time,))
+    hostlist = cur.fetchall()
+    print("Deleting: " + str(hostlist))
+
+    cur.execute("DELETE FROM hosts WHERE lastalive < ?", (week_ago_time,))
+    conn.commit()
+
+
+def get_hosts(conn):
     """Get existing list of hosts"""
     cur = conn.cursor()
     cur.execute("SELECT hostname FROM hosts")
@@ -97,13 +112,9 @@ def gethosts(conn):
     return hostnamelist
 
 
-def check_host_in_db(conn, ip_address):
-    cur = conn.cursor()
-    cur.execute("SELECT hostname FROM hosts WHERE")
-    hostlist = cur.fetchall()
-
-def checkhosts(conn):
+def check_hosts(conn):
     """ping all the hosts to see if they are up"""
+    hostlist = get_hosts(conn)
     timeepoch = int(time.time())
     # Since this scan takes a while, we put all the stats at the same time
     # to make the visual in grafana look better
@@ -114,13 +125,14 @@ def checkhosts(conn):
 
     # FIXME maybe
 
-    for i in range(1, MAXRANGE):
-        ip_address = IPRANGE + str(i)
-        pingresult = ping(ip_address, timeout=0.5)
-        print_debug("DEBUG " + ip_address + " " + str(pingresult), "\n")
+    for host in hostlist:
+        pingresult = ping(host, timeout=0.5)
+        print_debug("DEBUG " + host + " " + str(pingresult), "\n")
         print(type(pingresult))
-        if pingresult is None or pingresult is False:
-            result = False
+
+        if check_host_in_db(conn, ip_address):
+            pass
+            # update host in db?
         else:
             if pingresult is None:
                 result = False
@@ -168,9 +180,9 @@ def checkhosts(conn):
         print(req)
 
     except requests.exceptions.ConnectionError:
-        print("Could not POST")
-        sys.exit(1)
+        pass
 
+    print(req)
 
 
 def create_connection(db_file):
@@ -213,9 +225,9 @@ def main():
     if len(sys.argv) == 1:
         print("Give parameter pls")
     elif sys.argv[1] == "scan":
-        scanhosts(conn)
+        scan_hosts(conn)
     elif sys.argv[1] == "ping":
-        checkhosts(conn)
+        check_hosts(conn)
     else:
         print("What have you done? try 'scan' or 'ping' as a parameter")
 

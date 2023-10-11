@@ -1,11 +1,20 @@
 [[source]]
+<<<<<<< HEAD
 url = "https://pypi.org/simple"
+=======
+url = "https://pypi.python.org/simple"
+>>>>>>> dbce40e (I think this is fine)
 verify_ssl = true
 name = "pypi"
 
 [packages]
+<<<<<<< HEAD
 ping3 = "*"
 requests = "*"
+=======
+requests = "*"
+ping3 = "*"
+>>>>>>> dbce40e (I think this is fine)
 
 [dev-packages]
 black = "*"
@@ -13,4 +22,8 @@ pylint = "*"
 pylance = "*"
 
 [requires]
+<<<<<<< HEAD
 python_version = "3.11"
+=======
+python_version = "3.11"
+>>>>>>> dbce40e (I think this is fine)
