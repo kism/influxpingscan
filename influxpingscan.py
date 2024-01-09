@@ -115,13 +115,18 @@ def check_hosts(conn):
     # FIXME maybe
 
     for host in hostlist:
-        pingresult = ping(host, timeout=0.5)
-        print_debug("DEBUG " + host + " " + str(pingresult), "\n")
-        print(type(pingresult))
-        if pingresult is None or pingresult is False:
-            result = False
-        else:
-            result = True
+        pingresult = None
+        i = 0
+        while not pingresult and i <= 3 :
+            pingresult = ping(host, timeout=0.5)
+            print_debug("DEBUG " + host + " " + str(pingresult), "\n")
+            print(type(pingresult))
+            if pingresult is None or pingresult is False:
+                result = False
+                time.sleep(0.1)
+            else:
+                result = True
+            i = i + 1
 
         data = data + (
             "ping"
