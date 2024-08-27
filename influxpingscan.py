@@ -7,9 +7,9 @@ import sys
 import sqlite3
 import configparser
 import os
+import logging
 from sqlite3 import Error
 from urllib.parse import quote
-
 
 import requests
 from ping3 import ping
@@ -25,16 +25,10 @@ MEASUREMENT = CONFIG.get("INFLUXDB2", "measurement")
 INFLUXDBORG = CONFIG.get("INFLUXDB2", "organization")
 IPRANGE = CONFIG.get("NETWORK", "iprange")
 DEBUG = CONFIG.get("PROGRAM", "debug")
+
+logging.basicConfig(level=logging.INFO)
 if DEBUG.upper() == "TRUE":
-    DEBUG = True
-else:
-    DEBUG = False
-
-
-def print_debug(text, endchar):  # Debug messages in yellow if the debug global is true
-    """My cring and basic debug colouring"""
-    if DEBUG:
-        print("\033[93m" + text + "\033[0m", end=endchar)
+    logging.basicConfig(level=logging.DEBUG)
 
 
 def scan_hosts(conn):
@@ -48,19 +42,19 @@ def scan_hosts(conn):
 
         try:
             entry = socket.gethostbyaddr(ip_address)
-        except socket.herror:
+        except socket.error:
             pass
 
         timeepoch = int(time.time())
 
         if entry is not None:
-            print("Found: " + entry[0] + " at IP address: " + ip_address)
+            logging.info("Found: " + entry[0] + " at IP address: " + ip_address)
             try:
                 add_entry(conn, (entry[0], timeepoch))
             except sqlite3.IntegrityError:
                 pass  # If the unique check fails, just move on
         else:
-            print_debug("nothing at: " + ip_address, "\n")
+            logging.debug("nothing at: " + ip_address, "\n")
 
 
 def add_entry(conn, entry):
@@ -69,7 +63,7 @@ def add_entry(conn, entry):
             VALUES(?,?) """
     cur = conn.cursor()
     cur.execute(sql, entry)
-    print("adding to database: " + str(entry))
+    logging.info("adding to database: " + str(entry))
 
 
 def remove_old_hosts(conn):
@@ -81,7 +75,7 @@ def remove_old_hosts(conn):
 
     cur.execute("SELECT hostname FROM hosts WHERE lastalive < ?", (week_ago_time,))
     hostlist = cur.fetchall()
-    print("Deleting: " + str(hostlist))
+    logging.info("Deleting: " + str(hostlist))
 
     cur.execute("DELETE FROM hosts WHERE lastalive < ?", (week_ago_time,))
     conn.commit()
@@ -92,11 +86,10 @@ def get_hosts(conn):
     cur = conn.cursor()
     cur.execute("SELECT hostname FROM hosts")
     hostlist = cur.fetchall()
-    # print(list)
     hostnamelist = []
     for hostname in hostlist:
         hostnamelist.append(hostname[0])
-    print(hostnamelist)
+    logging.debug(hostnamelist)
 
     return hostnamelist
 
@@ -112,15 +105,15 @@ def check_hosts(conn):
 
     data = ""
 
-    # FIXME maybe
+    logging.info("pinging hosts")
 
     for host in hostlist:
         pingresult = None
         i = 0
-        while not pingresult and i <= 3 :
+        while not pingresult and i <= 3:
             pingresult = ping(host, timeout=0.5)
-            print_debug("DEBUG " + host + " " + str(pingresult), "\n")
-            print(type(pingresult))
+            logging.debug(host + " " + str(pingresult), "\n")
+            logging.debug(type(pingresult))
             if pingresult is None or pingresult is False:
                 result = False
                 time.sleep(0.1)
@@ -151,7 +144,7 @@ def check_hosts(conn):
         + "&precision=s"
     )
 
-    print_debug("DEBUG " + url + " \n" + data, "\n")
+    logging.debug("POST " + url + " \n" + data, "\n")
 
     try:
         req = requests.post(
@@ -161,10 +154,10 @@ def check_hosts(conn):
             headers={"Authorization": "Token " + INFLUXDBTOKEN},
             timeout=1,
         )
-        print(req)
+        logging.debug(req)
 
     except requests.exceptions.ConnectionError:
-        print("Could not POST")
+        logging.error("Could not POST")
         sys.exit(1)
 
 
@@ -174,7 +167,7 @@ def create_connection(db_file):
         conn = sqlite3.connect(db_file)
         return conn
     except Error as err:
-        print(err)
+        logging.error(err)
     return None
 
 
@@ -184,7 +177,7 @@ def create_table(conn, create_table_sql):
         connection = conn.cursor()
         connection.execute(create_table_sql)
     except Error as err:
-        print(err)
+        logging.error(err)
 
 
 def main():
@@ -200,19 +193,17 @@ def main():
 
     # create a database connection
     conn = create_connection(databasepath)
-    if conn is None:
-        print("Error! cannot create the database connection.")
 
     create_table(conn, sql_create_host_table)  # keyword, create table
 
     if len(sys.argv) == 1:
-        print("Give parameter pls")
+        logging.error("Give parameter pls")
     elif sys.argv[1] == "scan":
         scan_hosts(conn)
     elif sys.argv[1] == "ping":
         check_hosts(conn)
     else:
-        print("What have you done? try 'scan' or 'ping' as a parameter")
+        logging.error("What have you done? try 'scan' or 'ping' as a parameter")
 
     conn.commit()
 
